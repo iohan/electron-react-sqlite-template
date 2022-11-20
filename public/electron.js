@@ -87,12 +87,40 @@ const getContacts = () => {
     });
 };
 
+const getBooks = () => {
+    return new Promise((resolve, reject) => {
+        db.all(
+            "SELECT b.id, b.title, b.year, c.category FROM books b INNER JOIN book_categories c ON b.category = c.id",
+            [],
+            (err, rows) => {
+                if (err) {
+                    reject(err);
+                }
+
+                resolve(rows);
+            }
+        );
+    });
+};
+
+ipcMain.handle("get-books", async (event, args) => {
+    console.log("Getting Books");
+    const sql = getBooks();
+    const result = await sql.then((rows) => {
+        console.log(rows);
+        return rows;
+    });
+
+    return result;
+});
+
 ipcMain.handle("get-contacts", async (event, args) => {
-    console.log("IPC MAIN HANDLED");
+    console.log("Getting Contacts");
 
     const sql = getContacts();
 
     const result = await sql.then((rows) => {
+        console.log(rows);
         return rows;
     });
 

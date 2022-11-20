@@ -4,10 +4,17 @@ import { useState } from "react";
 
 function App() {
     const [contacts, setContacts] = useState([]);
+    const [books, setBooks] = useState([]);
+
     const getContacts = async () => {
         const contacts = await window.api.getContacts();
 
         contacts !== null && setContacts(contacts);
+    };
+
+    const getBooks = async () => {
+        const books = await window.api.getBooks();
+        books !== null && setBooks(books);
     };
 
     return (
@@ -36,6 +43,24 @@ function App() {
                     })}
                 </div>
                 <button onClick={getContacts}>Get Contacts</button>
+                <button onClick={getBooks}>Get Books</button>
+                <div className="bg-slate-50 text-slate-800 m-3 rounded-lg">
+                    {books?.map((book, i) => {
+                        return (
+                            <div
+                                key={i}
+                                className="border-b p-3 last:border-0 md:flex md:items-center"
+                            >
+                                <div className="font-bold mr-2 cursor-pointer">
+                                    {book.title}
+                                </div>
+                                <div className="text-xs italic">
+                                    {book.category} - {book.year}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </header>
         </div>
     );
