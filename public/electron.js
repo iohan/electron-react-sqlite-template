@@ -1,8 +1,7 @@
-const { app, BrowserWindow, session, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const isDev = require("electron-is-dev");
-const { resolve } = require("path");
 const path = require("path");
-const sqlite3 = require("sqlite3");
+const sqlite = require("./database");
 
 let mainWindow;
 
@@ -58,83 +57,46 @@ process.on("uncaughtException", (error) => {
   }
 });
 
-/**
- * ------------
- * Database Functions
- */
-
-const db = new sqlite3.Database(isDev ? path.join(__dirname, "../db/database.db") : path.join(process.resourcesPath, "db/database.db"), (err) => {
-  if (err) {
-    console.log(`Database Error: ${error}`);
-  } else {
-    console.log(`Database Loaded`);
-  }
+app.whenReady().then(async () => {
+  // Open database connection
+  await sqlite.open(isDev ? path.join(__dirname, "../db/database.db") : path.join(process.resourcesPath, "db/database.db"));
 });
-
-const dbResponse = (promise) => {
-  return promise
-    .then((res) => {
-      return res;
-    })
-    .catch((err) => {
-      console.log("ERROR: " + err.message);
-      return false;
-    });
-};
-
-const dbAll = async (query, args) => {
-  const p = new Promise((resolve, reject) => {
-    db.all(query, args, (err, rows) => {
-      if (err) reject(err.message);
-      else resolve(rows);
-    });
-  });
-
-  return await dbResponse(p);
-};
-
-const dbRun = async (query) => {
-  const p = new Promise((resolve, reject) => {
-    db.run(query, (err) => {
-      if (err) reject(err.message);
-      else resolve(true);
-    });
-  });
-
-  return await dbResponse(p);
-};
 
 /**
  * ------------
  * API Calls
  */
 
+// - listContacts
 ipcMain.handle("listContacts", async (event, args) => {
-  const result = await dbAll("SELECT * FROM contacts ORDER BY firstName asc", []);
+  const result = await sqlite.all("SELECT * FROM contacts ORDER BY firstName asc", []);
   return result;
 });
 
+// - createContact
 ipcMain.handle("createContact", async (event, data) => {
   const JSONdata = JSON.parse(data);
   const sql = `INSERT INTO contacts(firstName, lastName, email, phone)
               VALUES('${JSONdata.firstName}', '${JSONdata.lastName}', '${JSONdata.email}', '${JSONdata.phone}')`;
-  const result = await dbRun(sql);
+  const result = await sqlite.run(sql);
   console.log(result);
   return result;
 });
 
+// - updateContact
 ipcMain.handle("updateContact", async (event, data) => {
   const JSONdata = JSON.parse(data);
   const sql = `UPDATE contacts SET
               firstName = '${JSONdata.firstName}', lastName = '${JSONdata.lastName}', email = '${JSONdata.email}', phone = '${JSONdata.phone}'
               WHERE id = '${JSONdata.id}'`;
-  const result = await dbRun(sql);
+  const result = await sqlite.run(sql);
   console.log(result);
   return result;
 });
 
+// - deleteContact
 ipcMain.handle("deleteContact", async (event, id) => {
-  const result = await dbRun(`DELETE FROM contacts WHERE id = ${id}`);
+  const result = await sqlite.run(`DELETE FROM contacts WHERE id = ${id}`);
   console.log(result);
   return result;
 });
