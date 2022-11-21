@@ -7,80 +7,97 @@ export default function App() {
   const [showError, setShowError] = useState("");
   const [selectedContact, setSelectedContact] = useState(false);
 
-  /**
-   * TODO:
-   * [ ] - Check response and look for errors from database call (Update, Insert, Delete)
-   * [ ] - Scroll in div when many contacts
-   */
-
   useEffect(() => {
     setShowError();
-    async function getInitContacts() {
-      console.log("Init Contacts");
-      const response = await window.api.listContacts();
-      if (response) {
-        setContacts(response);
-      } else {
-        setShowError("Can't fetch contacts from database");
-      }
-    }
-    getInitContacts();
+    initContacts();
   }, []);
 
-  const handleFormSubmit = async function (data) {
-    try {
-      if (selectedContact !== false) {
-        // Update Contact
-        const newContactData = {
-          id: selectedContact.id,
-          firstName: data.firstName,
-          lastName: data.lastName !== null ? data.lastName : "",
-          phone: data.phone !== null ? data.phone : "",
-          email: data.email !== null ? data.email : "",
-        };
+  const initContacts = async () => {
+    // Get from DB
+    const response = await window.api.listContacts();
 
-        setSelectedContact(false);
-
-        //await updateContactInDB(newContact);
-        await window.api.updateContact(JSON.stringify(newContactData));
-
-        // Update contacts-array
-        const updatedContacts = [...contacts].map((contact) => (contact.id === newContactData.id ? newContactData : contact));
-        const sortedContacts = sortContactsByFirstName(updatedContacts);
-        setContacts(sortedContacts);
-      } else {
-        // Create new Contact
-        const newContactData = { firstName: data.firstName, lastName: data.lastName, phone: data.phone, email: data.email };
-
-        // Add contact to DB
-        await window.api.createContact(JSON.stringify(newContactData));
-
-        // Sort array by firstname
-        const sortedContacts = sortContactsByFirstName([...contacts, newContactData]);
-        setContacts(sortedContacts);
-      }
-    } catch (err) {
-      alert(err);
+    if (response) {
+      setContacts(response);
+    } else {
+      setShowError("Can't fetch contacts from database");
     }
   };
 
-  const handleFormCancel = function () {
+  const updateContact = async (data) => {
+    const newContactData = {
+      id: selectedContact.id,
+      firstName: data.firstName,
+      lastName: data.lastName !== null ? data.lastName : "",
+      phone: data.phone !== null ? data.phone : "",
+      email: data.email !== null ? data.email : "",
+    };
+
     setSelectedContact(false);
+
+    // Update in DB
+    const response = await window.api.updateContact(JSON.stringify(newContactData));
+
+    if (response) {
+      const updatedContacts = [...contacts].map((contact) => (contact.id === newContactData.id ? newContactData : contact));
+      const sortedContacts = sortContactsByFirstName(updatedContacts);
+      setContacts(sortedContacts);
+    } else {
+      setShowError("Error while updating contact");
+    }
   };
 
-  const handleFormDelete = async function () {
+  const createContact = async (data) => {
+    const newContactData = { firstName: data.firstName, lastName: data.lastName, phone: data.phone, email: data.email };
+
+    // Add to DB
+    const response = await window.api.createContact(JSON.stringify(newContactData));
+
+    if (response) {
+      const sortedContacts = sortContactsByFirstName([...contacts, newContactData]);
+      setContacts(sortedContacts);
+    } else {
+      setShowError("Error while creating contact.");
+    }
+  };
+
+  const deleteContact = async () => {
     const contactToDelete = selectedContact;
     setSelectedContact(false);
 
-    setContacts([...contacts].filter((contact) => contact.id !== contactToDelete.id));
+    // Delete from DB
+    const response = await window.api.deleteContact(contactToDelete.id);
 
-    await window.api.deleteContact(contactToDelete.id);
+    if (response) {
+      setContacts([...contacts].filter((contact) => contact.id !== contactToDelete.id));
+    } else {
+      setShowError("Error while deleting contact.");
+    }
   };
 
-  const sortContactsByFirstName = function (contacts) {
-    const sortedContacts = contacts.sort((a, b) => a.firstName.localeCompare(b.firstName));
-    return sortedContacts;
+  const handleFormSubmit = async function (data) {
+    setShowError();
+    try {
+      if (selectedContact !== false) {
+        updateContact(data);
+      } else {
+        createContact(data);
+      }
+    } catch (err) {
+      setShowError(err);
+    }
   };
+
+  const handleFormCancel = () => {
+    setShowError();
+    setSelectedContact(false);
+  };
+
+  const handleFormDelete = async () => {
+    setShowError();
+    deleteContact();
+  };
+
+  const sortContactsByFirstName = (contacts) => contacts.sort((a, b) => a.firstName.localeCompare(b.firstName));
 
   return (
     <div className="bg-cold h-screen">
@@ -94,17 +111,17 @@ export default function App() {
             </div>
           )}
 
-          <div className="flex">
+          <div className="flex max-h-[450px]">
             <div className="bg-spruce basis-1/2 pt-3 pb-5">
               <div className="text-lg uppercase text-center pb-3 text-cold">{selectedContact ? "Update Contact" : "Add Contact"}</div>
               <Form onSubmit={handleFormSubmit} onCancel={handleFormCancel} onDelete={handleFormDelete} contact={selectedContact} />
             </div>
-            <div className="basis-1/2 bg-red-50 pt-3 pb-5 px-5">
+            <div className="basis-1/2 bg-red-50 pt-3 pb-5 px-5 overflow-scroll">
               <div className="text-lg uppercase text-center pb-3 text-soot">Contacts</div>
 
               {contacts?.map((contact, index) => {
                 return (
-                  <div key={index}>
+                  <div key={index} className="cursor-pointer">
                     <ContactCard contact={contact} onClick={(contact) => setSelectedContact(contact)} />
                   </div>
                 );
