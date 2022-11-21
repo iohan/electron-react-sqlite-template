@@ -3,7 +3,7 @@
 Working with local databases together with Electron is a challenging task in many ways.
 I've done the job in this repo for anyone to use and build upon.
 
-The CRUD example in this template is a rewrite of my [Contacts-App](https://github.com/iohan/Contacts-app).
+The CRUD example in this template is a rewrite of my [Contacts-App](https://github.com/iohan/Contacts-app) but instead of Next.js and Prisma, I'm using React and SQLite.
 Hope you find it usefull!
 
 ## Getting Started
